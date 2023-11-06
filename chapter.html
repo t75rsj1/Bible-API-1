@@ -1,0 +1,186 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">
+    <link href="main.css" rel="stylesheet">
+    <link href="scripture.css" rel="stylesheet">
+    <title>Bible API Example Application Chapter HTML</title>
+  </head>
+
+  <body class="basic basic_chapter">
+
+    <header>
+      <div class="container">
+        <a href="index.html" class="logo" title="American Bible Society">ABS</a>
+
+        <div class="crumbs">
+          <div id="breadcrumbs"></div>
+        </div>
+
+        <h1>
+          <a href="index.html">
+            <span>API Demo App</span>
+          </a>
+        </h1>
+      </div>
+    </header>
+
+    <div class="subheader">
+      <div class="container flex">
+
+        <div class="subheadings">
+          <h2>Viewing:</h2>
+          <h3 id="viewing"></h3>
+        </div>
+        <div id="search-container" class="search-area flex">
+          <button onclick="searchButton()">🔎</button>
+          <input type="text" id="search-input" placeholder="ex. 'John 3:16-19' OR 'kingdom'"
+            size="30" onkeydown = "if (event.keyCode == 13) searchButton()" >
+        </div>
+
+      </div><!-- .container.flex -->
+    </div><!-- .subheader -->
+
+    <main class="container">
+      <h4 id="select-prompt" class="list-heading"><span>Select a Chapter</span></h4>
+
+      <div id="chapter-list" class="list-container numeric-list"></div>
+      <h4 id="select-prompt" class="list-heading"><span>Select a Section</span></h4>
+      <div id="section-list" class="list-container section-list"></div>
+
+    </main>
+
+    <script src="my_key.js"></script>
+    
+    <script>
+      const bibleChapterList = document.querySelector(`#chapter-list`);
+      const bibleSectionList = document.querySelector(`#section-list`);
+      const bibleVersionID = getParameterByName(`version`);
+      const bibleBookID = getParameterByName(`book`);
+      const abbreviation = getParameterByName(`abbr`);
+
+      let chapterHTML = ``;
+      let sectionHTML = ``;
+
+      if (!bibleVersionID || !bibleBookID) {
+        window.location.href = `./index.html`;
+      }
+
+      getChapters(bibleVersionID, bibleBookID).then((chapterList) => {
+        chapterHTML += `<ol>`;
+        for (let chapter of chapterList) {
+          chapterHTML += `<li class="grid"><a class="grid-link" href="verse.html?version=${bibleVersionID}&abbr=${abbreviation}&chapter=${chapter.id}"> ${chapter.number} </a></li>`;
+        }
+        chapterHTML += `</ol>`;
+        bibleChapterList.innerHTML = chapterHTML;
+      });
+
+      getSections(bibleVersionID, bibleBookID).then((sectionList) => {
+        if (sectionList) {
+          sectionHTML += `<ol>`;
+          for (let section of sectionList) {
+            sectionHTML += `<li class="section"><a href="section.html?version=${bibleVersionID}&abbr=${abbreviation}&section=${section.id}"><abbr class="section-id">${section.id}</abbr><span class="bible-version-name"> ${section.title} </span></a></li>`;
+          }
+          sectionHTML += `</ol>`;
+        } else {
+          sectionHTML += `<div>There are no sections for this version and chapter.</div>`;
+        }
+
+        bibleSectionList.innerHTML = sectionHTML;
+      });
+
+      document.querySelector(`#viewing`).innerHTML = `${bibleBookID}`;
+      const breadcrumbsHTML = `
+        <ul>
+          <li><a href="book.html?version=${bibleVersionID}&abbr=${abbreviation}">${abbreviation}</a></li>
+          <li>${bibleBookID}</li>
+        </ul>
+      `;
+      breadcrumbs.innerHTML = breadcrumbsHTML;
+
+      /**
+       * Gets chapters from API.Bible
+       * @param {string} bibleVersionID to get chapters from
+       * @param {string} bibleBookID to get chapters from
+       * @returns {Promise} containing list of chapters from selected book
+       */
+      function getChapters(bibleVersionID, bibleBookID) {
+        return new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.withCredentials = false;
+
+          xhr.addEventListener(`readystatechange`, function() {
+            if (this.readyState === this.DONE) {
+              const {data} = JSON.parse(this.responseText);
+              const chapters = data.map( ({number, id}) => { return {number, id}; } );
+
+              resolve(chapters);
+            }
+          });
+
+          xhr.open(`GET`, `https://v2.api.bible/bibles/${bibleVersionID}/books/${bibleBookID}/chapters`);
+          xhr.setRequestHeader(`api-key`, API_KEY);
+
+          xhr.onerror = () => reject(xhr.statusText);
+
+          xhr.send();
+        });
+      }
+
+      /**
+       * Gets sections from API.Bible
+       * @param {string} bibleVersionID to get sections from
+       * @param {string} bibleBookID to get sections from
+       * @returns {Promise} containing list of sections from selected book
+       */
+      function getSections(bibleVersionID, bibleBookID) {
+        return new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.withCredentials = false;
+
+          xhr.addEventListener(`readystatechange`, function() {
+            if (this.readyState === this.DONE) {
+              const {data} = JSON.parse(this.responseText);
+              const sections = data ? data.map( ({title, id}) => { return {title, id}; } ) : null;
+
+              resolve(sections);
+            }
+          });
+
+          xhr.open(`GET`, `https://v2.api.bible/bibles/${bibleVersionID}/books/${bibleBookID}/sections`);
+          xhr.setRequestHeader(`api-key`, API_KEY);
+
+          xhr.onerror = () => reject(xhr.statusText);
+
+          xhr.send();
+        });
+      }
+
+      /**
+       * Gets query parameter from URL based on name
+       * @param {string} name of query parameter
+       * @returns {string} value of query parameter
+       */
+      function getParameterByName(name) {
+        const url = window.location.href;
+        name = name.replace(/[\[\]]/g, `\\$&`);
+        const regex = new RegExp(`[?&]` + name + `(=([^&#]*)|&|#|$)`),
+          results = regex.exec(url);
+        if (!results) return null;
+        if (!results[2]) return ``;
+        return decodeURIComponent(results[2].replace(/\+/g, ` `));
+      }
+
+      /**
+       * Loads page for new search
+       */
+      function searchButton(){
+        const searchInput = document.querySelector(`#search-input`);
+        window.location.href = `./search.html?&version=${bibleVersionID}&abbr=${abbreviation}&query=${searchInput.value}`;
+      }
+    </script>
+
+  </body>
+</html>

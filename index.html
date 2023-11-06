@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link href="main.css" rel="stylesheet">
+    <link href="scripture.css" rel="stylesheet">
+    <title>Bible API Example Application Index HTML</title>
+    <script type="text/javascript" src = myjsfile.js></script>
+  </head>
+  <body class="index">
+      <script type="text/javascript">alert(add(400, 200));</script>
+      <header>
+          <div class="container">
+              <h1>
+                  <a class="flex" href="/">
+                      <span class="logo" title="American Bible Society">ABS</span>
+                      <span>API Demo App</span>
+                  </a>
+              </h1>
+          </div>
+      </header>
+      <div class="subheader">
+          <div class="container flex">
+              <div class="subheadings">
+                  <h2>Select a</h2>
+                  <h3>Bible</h3>
+              </div>
+          </div>
+      </div>
+      <main class="container">
+          <div id="bible-version-list" class="list-container bible-list"></div>
+      </main>
+
+      <script src="my_key.js"></script>
+      
+      <script type="text/javascript">alert(add(300, 200));</script>
+     
+      <script type="text/javascript">alert(add(500, 500));</script>
+      
+      <script>
+           // JAVASCRIPT GOES HERE
+          alert(add(5000, 5000));
+          // *
+          // const API_KEY = `c3b090874213c44dd5a07ae76d44f1fa`;
+          alert(add(5000, 5001));
+          const versionList = document.querySelector(`#bible-version-list`);
+          let versionHTML = ``;
+          alert(add(5000, 5002));
+          getBibleVersions().then((bibleVersionList) => {
+              const sortedVersions = sortVersionsByLanguage(bibleVersionList);
+
+              for (let languageGroup in sortedVersions) {
+                  const language = languageGroup;
+                  versionHTML += `<h4 class="list-heading"><span>${language}</span></h4><ul>`;
+                  const versions = sortedVersions[languageGroup];
+                  for (let version of versions) {
+                      versionHTML += `<li class="bible">
+                              <a href="book.html?version=${version.id}&abbr=${version.abbreviation
+                          }">
+                                <abbr class="bible-version-abbr" title="${version.name
+                          }">${version.abbreviation}</abbr>
+                                <span>
+                                  <span class="bible-version-name">${version.name
+                          }</span>
+                                  ${version.description
+                              ? '<span class="bible-version-desc">' +
+                              version.description +
+                              "</span>"
+                              : ""
+                          }
+                                </span>
+                              </a>
+                            </li>`;
+                  }
+                  versionHTML += `</ul>`;
+              }
+              versionList.innerHTML = versionHTML;
+          });
+          function getBibleVersions() {
+              return new Promise((resolve, reject) => {
+                  const xhr = new XMLHttpRequest();
+                  xhr.withCredentials = false;
+
+                  xhr.addEventListener(`readystatechange`, function () {
+                      if (this.readyState === this.DONE) {
+                          const { data } = JSON.parse(this.responseText);
+                          const versions = data.map((data) => {
+                              return {
+                                  name: data.name,
+                                  id: data.id,
+                                  abbreviation: data.abbreviation,
+                                  description: data.description,
+                                  language: data.language.name,
+                              };
+                          });
+
+                          resolve(versions);
+                      }
+                  });
+
+                  xhr.open(`GET`, `https://api.scripture.api.bible/v1/bibles`);
+                  xhr.setRequestHeader(`api-key`, API_KEY);
+
+                  xhr.onerror = () => reject(xhr.statusText);
+
+                  xhr.send();
+              });
+          }
+          function sortVersionsByLanguage(bibleVersionList) {
+              let sortedVersions = {};
+
+              for (const version of bibleVersionList) {
+                  if (!sortedVersions[version.language]) {
+                      sortedVersions[version.language] = [];
+                  }
+                  sortedVersions[version.language].push(version);
+              }
+              for (const version in sortedVersions) {
+                  sortedVersions[version].sort((a, b) => {
+                      const nameA = a.abbreviation.toUpperCase();
+                      const nameB = b.abbreviation.toUpperCase();
+                      if (nameA < nameB) {
+                          return -1;
+                      }
+                      if (nameA > nameB) {
+                          return 1;
+                      }
+                      return 0;
+                  });
+              }
+              return sortedVersions;
+          }
+          //# sourceURL=bobbyj1.js
+       </script>
+  </body>
+</html>
